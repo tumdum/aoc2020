@@ -1,6 +1,6 @@
 2019: https://git.sr.ht/~ttt/aoc2019/tree
 
-2018:
+2018: https://git.sr.ht/~ttt/aoc18/tree
 
 2017: https://github.com/tumdum/aoc2017
 
