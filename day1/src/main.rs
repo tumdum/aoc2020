@@ -1,14 +1,13 @@
+use itertools::Itertools;
 use std::collections::HashMap;
 use std::io::BufRead;
 
 fn prepare(input: &[usize]) -> HashMap<usize, (usize, usize)> {
-    let mut m = HashMap::new();
-    for a in input {
-        for b in input {
-            m.insert(a + b, (*a, *b));
-        }
-    }
-    m
+    input
+        .iter()
+        .cartesian_product(input.iter())
+        .map(|(a, b)| (a + b, (*a, *b)))
+        .collect()
 }
 
 fn part_1(input: &[usize]) -> Option<usize> {
@@ -17,15 +16,13 @@ fn part_1(input: &[usize]) -> Option<usize> {
 
 fn part_2(input: &[usize]) -> Option<usize> {
     let m = prepare(input);
-    for v in input {
-        if let Some((a, b)) = m.get(&(2020 - v)) {
-            return Some(a * b * v);
-        }
-    }
-    None
+    input
+        .iter()
+        .find_map(|v| m.get(&(2020 - *v)).map(|(a, b)| a * b * *v))
 }
+
 fn main() {
-    let input: Vec<usize> = std::io::stdin()
+    let input: Vec<_> = std::io::stdin()
         .lock()
         .lines()
         .map(|l| l.unwrap().parse().unwrap())
