@@ -8,15 +8,6 @@ enum Op {
     Nop(isize),
 }
 
-impl Op {
-    fn is_acc(&self) -> bool {
-        if let Op::Acc(_) = self {
-            true
-        } else {
-            false
-        }
-    }
-}
 fn parse_op(s: &str) -> Op {
     let v: Vec<_> = s.split(' ').collect();
     let arg = v[1].parse::<isize>().unwrap();
@@ -43,13 +34,13 @@ impl Cpu {
         }
     }
 
-    fn run(&mut self, ops: &[Op]) -> bool {
+    fn run(&mut self, ops: &[Op]) -> Result<isize, isize> {
         loop {
             if self.pc as usize == ops.len() {
-                return true;
+                return Ok(self.acc);
             }
             if !self.seen.insert(self.pc) {
-                return false;
+                return Err(self.acc);
             }
             match ops[self.pc as usize] {
                 Op::Acc(v) => {
@@ -79,7 +70,13 @@ fn gen_all(input: &[Op]) -> Vec<Vec<Op>> {
     input
         .iter()
         .enumerate()
-        .filter_map(|(n, v)| if !v.is_acc() { Some(n) } else { None })
+        .filter_map(|(n, v)| {
+            if matches!(v, Op::Acc(_)) {
+                None
+            } else {
+                Some(n)
+            }
+        })
         .map(|i| {
             let mut new = input.to_vec();
             new[i] = change(&input[i]);
@@ -95,14 +92,12 @@ fn main() {
         .map(|s| parse_op(&s.unwrap()))
         .collect();
     let mut cpu = Cpu::new();
-    cpu.run(&input);
-    dbg!(cpu.acc);
+    let _ = dbg!(cpu.run(&input));
     let all_progs = gen_all(&input);
     for p in all_progs {
         let mut cpu = Cpu::new();
-        let result = cpu.run(&p);
-        if result {
-            dbg!(cpu.acc);
+        if let Ok(acc) = cpu.run(&p) {
+            dbg!(acc);
             break;
         }
     }
