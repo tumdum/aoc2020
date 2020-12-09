@@ -17,26 +17,15 @@ fn check(input: &[usize], len: usize) -> Option<usize> {
 }
 
 fn find_sum(input: &[usize], start: usize, sum: usize) -> Option<Vec<usize>> {
-    if input[start] == sum {
-        return None;
-    }
-    let mut s = 0;
-    let mut current = start;
-    let mut v = vec![];
-    loop {
-        if current >= input.len() {
-            return None;
-        }
-        s += input[current];
-        v.push(input[current]);
+    for end in start+2..input.len() {
+        let s = input[start..end].iter().sum::<usize>();
         if s == sum {
-            return Some(v);
+            return Some(input[start..end].to_vec())
+        } else if s > sum {
+            break;
         }
-        if s > sum {
-            return None;
-        }
-        current += 1;
     }
+    None
 }
 
 fn main() {
