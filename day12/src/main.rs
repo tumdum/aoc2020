@@ -1,7 +1,7 @@
 use std::io::BufRead;
 use std::ops::{Add, Sub};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 enum Dir {
     N,
     S,
@@ -9,10 +9,11 @@ enum Dir {
     W,
 }
 
+use Dir::*;
+
 impl Dir {
-    fn turn(&self, turn: &Turn, val: isize) -> Self {
-        fn turn_once(d: Dir, t: &Turn) -> Dir {
-            use Dir::*;
+    fn turn(self, turn: Turn, val: isize) -> Self {
+        fn turn_once(d: Dir, t: Turn) -> Dir {
             use Turn::*;
             match (d, t) {
                 (N, L) => W,
@@ -25,7 +26,7 @@ impl Dir {
                 (W, R) => N,
             }
         }
-        let mut ret = self.clone();
+        let mut ret = self;
         for _ in 0..(val / 90) {
             ret = turn_once(ret, turn);
         }
@@ -33,18 +34,22 @@ impl Dir {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 enum Turn {
     L,
     R,
 }
 
+use Turn::*;
+
 #[derive(Debug, Clone, PartialEq)]
 enum Type {
-    Dir(Dir),
-    Turn(Turn),
+    D(Dir),
+    T(Turn),
     Forward,
 }
+
+use Type::*;
 
 #[derive(Debug, Clone, PartialEq)]
 struct Command {
@@ -85,21 +90,21 @@ impl Sub for Pos {
 }
 
 impl Pos {
-    fn move_to(self, dir: &Dir, dist: isize) -> Pos {
+    fn move_to(self, dir: Dir, dist: isize) -> Pos {
         match dir {
-            Dir::N => Pos {
+            N => Pos {
                 y: self.y + dist,
                 ..self
             },
-            Dir::S => Pos {
+            S => Pos {
                 y: self.y - dist,
                 ..self
             },
-            Dir::W => Pos {
+            W => Pos {
                 x: self.x - dist,
                 ..self
             },
-            Dir::E => Pos {
+            E => Pos {
                 x: self.x + dist,
                 ..self
             },
@@ -115,8 +120,8 @@ impl Pos {
 
     fn rotate(&self, _around: &Pos, turn: &Turn) -> Pos {
         match turn {
-            Turn::L => self.rotate_counter(),
-            Turn::R => self.rotate_counter().rotate_counter().rotate_counter(),
+            L => self.rotate_counter(),
+            R => self.rotate_counter().rotate_counter().rotate_counter(),
         }
     }
 }
@@ -131,18 +136,9 @@ impl Ship {
     fn apply(&self, command: &Command) -> Ship {
         let mut s = self.clone();
         match command {
-            Command {
-                val,
-                t: Type::Dir(d),
-            } => s.pos = self.pos.move_to(d, *val),
-            Command {
-                val,
-                t: Type::Turn(t),
-            } => s.dir = self.dir.turn(t, *val),
-            Command {
-                val,
-                t: Type::Forward,
-            } => s.pos = self.pos.move_to(&self.dir, *val),
+            Command { val, t: D(d) } => s.pos = self.pos.move_to(*d, *val),
+            Command { val, t: T(t) } => s.dir = self.dir.turn(*t, *val),
+            Command { val, t: Forward } => s.pos = self.pos.move_to(self.dir, *val),
         };
         s
     }
@@ -152,7 +148,7 @@ impl Default for Ship {
     fn default() -> Self {
         Self {
             pos: Pos { x: 0, y: 0 },
-            dir: Dir::E,
+            dir: E,
         }
     }
 }
@@ -176,24 +172,15 @@ impl ShipWayPoint {
     fn apply(&self, command: &Command) -> Self {
         let mut s = self.clone();
         match command {
-            Command {
-                val,
-                t: Type::Dir(d),
-            } => {
-                s.waypoint = s.waypoint.move_to(d, *val);
+            Command { val, t: D(d) } => {
+                s.waypoint = s.waypoint.move_to(*d, *val);
             }
-            Command {
-                val,
-                t: Type::Turn(t),
-            } => {
+            Command { val, t: T(t) } => {
                 for _ in 0..(val / 90) {
                     s.waypoint = s.waypoint.rotate(&self.ship, t);
                 }
             }
-            Command {
-                val,
-                t: Type::Forward,
-            } => {
+            Command { val, t: Forward } => {
                 for _ in 0..*val {
                     s.ship = s.ship + s.waypoint;
                 }
@@ -207,13 +194,13 @@ fn parse(s: &str) -> Command {
     Command {
         val: s[1..].parse().unwrap(),
         t: match s.chars().next() {
-            Some('N') => Type::Dir(Dir::N),
-            Some('S') => Type::Dir(Dir::S),
-            Some('E') => Type::Dir(Dir::E),
-            Some('W') => Type::Dir(Dir::W),
-            Some('L') => Type::Turn(Turn::L),
-            Some('R') => Type::Turn(Turn::R),
-            Some('F') => Type::Forward,
+            Some('N') => D(N),
+            Some('S') => D(S),
+            Some('E') => D(E),
+            Some('W') => D(W),
+            Some('L') => T(L),
+            Some('R') => T(R),
+            Some('F') => Forward,
             _ => unreachable!(),
         },
     }
