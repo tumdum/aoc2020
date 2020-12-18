@@ -144,37 +144,37 @@ fn one_turn(old: HashMap<Pos, State>) -> HashMap<Pos, State> {
     ret
 }
 
-fn min_max(m: &HashMap<Pos, State>) -> (isize, isize, isize, isize) {
-    let min_x = m.keys().map(|p| p.x).min().unwrap_or(0);
-    let max_x = m.keys().map(|p| p.x).max().unwrap_or(0);
-    let min_y = m.keys().map(|p| p.y).min().unwrap_or(0);
-    let max_y = m.keys().map(|p| p.y).max().unwrap_or(0);
-    (min_x, max_x, min_y, max_y)
-}
-
-fn print_slice(m: &HashMap<Pos, State>, z: isize) {
-    let m: HashMap<Pos, State> = m
-        .iter()
-        .filter(|(p, _)| p.z == z)
-        .map(|(p, s)| (*p, *s))
-        .collect();
-    let (min_x, max_x, min_y, max_y) = min_max(&m);
-    for y in min_y..=max_y {
-        for x in min_x..=max_x {
-            print!(
-                "{}",
-                m.get(&Pos { x, y, z, w: 0 }).unwrap_or(&State::Inactive)
-            );
-        }
-        println!()
-    }
-}
-
-fn slices(m: &HashMap<Pos, State>) -> std::collections::BTreeSet<isize> {
-    m.keys().map(|p| p.z).collect()
-}
-
 fn print(m: &HashMap<Pos, State>) {
+    fn min_max(m: &HashMap<Pos, State>) -> (isize, isize, isize, isize) {
+        let min_x = m.keys().map(|p| p.x).min().unwrap_or(0);
+        let max_x = m.keys().map(|p| p.x).max().unwrap_or(0);
+        let min_y = m.keys().map(|p| p.y).min().unwrap_or(0);
+        let max_y = m.keys().map(|p| p.y).max().unwrap_or(0);
+        (min_x, max_x, min_y, max_y)
+    }
+
+    fn print_slice(m: &HashMap<Pos, State>, z: isize) {
+        let m: HashMap<Pos, State> = m
+            .iter()
+            .filter(|(p, _)| p.z == z)
+            .map(|(p, s)| (*p, *s))
+            .collect();
+        let (min_x, max_x, min_y, max_y) = min_max(&m);
+        for y in min_y..=max_y {
+            for x in min_x..=max_x {
+                print!(
+                    "{}",
+                    m.get(&Pos { x, y, z, w: 0 }).unwrap_or(&State::Inactive)
+                );
+            }
+            println!()
+        }
+    }
+
+    fn slices(m: &HashMap<Pos, State>) -> std::collections::BTreeSet<isize> {
+        m.keys().map(|p| p.z).collect()
+    }
+
     for z in slices(&m) {
         println!("z={}", z);
         print_slice(&m, z);
@@ -183,27 +183,11 @@ fn print(m: &HashMap<Pos, State>) {
 }
 
 fn turns(start: HashMap<Pos, State>, n: usize) -> HashMap<Pos, State> {
-    let mut ret = start;
-    for i in 1..=n {
-        ret = one_turn(ret);
-        /*
-        println!("turn {}", i);
-        print(&ret);
-        */
-    }
-    ret
+    (1..=n).fold(start, |state, _| one_turn(state))
 }
 
 fn turns_4d(start: HashMap<Pos, State>, n: usize) -> HashMap<Pos, State> {
-    let mut ret = start;
-    for i in 1..=n {
-        ret = one_turn_4d(ret);
-        /*
-        println!("turn {}", i);
-        print(&ret);
-        */
-    }
-    ret
+    (1..=n).fold(start, |state, _| one_turn_4d(state))
 }
 
 fn one_turn_4d(old: HashMap<Pos, State>) -> HashMap<Pos, State> {
