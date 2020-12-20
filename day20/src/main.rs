@@ -31,11 +31,12 @@ fn vertical_flip(t: &Tile) -> Tile {
     t.iter().rev().cloned().collect()
 }
 
+// All possible transformation of tile (rotate, both flips)
 fn possible(t: &Tile) -> HashSet<Tile> {
     let mut s = HashSet::new();
-    s.extend(rotations(t));
-    s.extend(rotations(&horizontal_flip(t)));
-    s.extend(rotations(&vertical_flip(t)));
+    s.extend(all_possible_rotations(t));
+    s.extend(all_possible_rotations(&horizontal_flip(t)));
+    s.extend(all_possible_rotations(&vertical_flip(t)));
     s
 }
 
@@ -51,7 +52,7 @@ fn rotate_right(t: &Tile) -> Tile {
     copy
 }
 
-fn rotations(t: &Tile) -> HashSet<Tile> {
+fn all_possible_rotations(t: &Tile) -> HashSet<Tile> {
     let mut s = HashSet::new();
 
     s.insert(t.clone());
@@ -91,7 +92,7 @@ enum Side {
 }
 
 impl Side {
-    fn other(self) -> Self {
+    fn opposite(self) -> Self {
         match self {
             Self::Up => Self::Down,
             Self::Down => Self::Up,
@@ -101,6 +102,7 @@ impl Side {
     }
 }
 
+// Get values (one row or column) on 'side' of tile
 fn get_side(t: &Tile, side: Side) -> Vec<bool> {
     match side {
         Side::Up => t[0].clone(),
@@ -110,10 +112,12 @@ fn get_side(t: &Tile, side: Side) -> Vec<bool> {
     }
 }
 
+// Check if base and other have same values on side and opposite side respecitvely
 fn match_on(base: &Tile, other: &Tile, side: Side) -> bool {
-    get_side(base, side) == get_side(other, side.other())
+    get_side(base, side) == get_side(other, side.opposite())
 }
 
+// Find a tile in all that is not a base and matches on side with base
 fn find_match(base: &(usize, Tile), side: Side, all: &Map) -> Option<(usize, Tile)> {
     let v: Vec<(usize, Tile)> = all
         .iter()
@@ -132,6 +136,7 @@ fn find_match(base: &(usize, Tile), side: Side, all: &Map) -> Option<(usize, Til
     }
 }
 
+// Add one tile on both left and right side that matches with each end
 fn expand_row_once(r: &[(usize, Tile)], all: &Map) -> Vec<(usize, Tile)> {
     let mut r = r.to_vec();
     if let Some(lt) = find_match(&r[0], Side::Left, all) {
@@ -143,6 +148,7 @@ fn expand_row_once(r: &[(usize, Tile)], all: &Map) -> Vec<(usize, Tile)> {
     r
 }
 
+// Expend row in both left and right until there is no way to do that
 fn expand_row(r: &[(usize, Tile)], all: &Map) -> Vec<(usize, Tile)> {
     let mut old = r.to_vec();
     loop {
@@ -154,6 +160,7 @@ fn expand_row(r: &[(usize, Tile)], all: &Map) -> Vec<(usize, Tile)> {
     }
 }
 
+// Find a new row that matches 'row' on side (up or down)
 fn row_to_side(row: &[(usize, Tile)], side: Side, all: &Map) -> Option<Vec<(usize, Tile)>> {
     let mut other_row = vec![];
     for t in row {
@@ -166,6 +173,7 @@ fn row_to_side(row: &[(usize, Tile)], side: Side, all: &Map) -> Option<Vec<(usiz
     Some(other_row)
 }
 
+// Expand rows in up/down direction by at most one new row in each direction
 fn expand_once(rows: &[Vec<(usize, Tile)>], all: &Map) -> Vec<Vec<(usize, Tile)>> {
     let mut rows = rows.to_vec();
     if let Some(row) = row_to_side(&rows[0], Side::Up, all) {
@@ -177,6 +185,7 @@ fn expand_once(rows: &[Vec<(usize, Tile)>], all: &Map) -> Vec<Vec<(usize, Tile)>
     rows
 }
 
+// Expand rows in up/down until there is no way to do that
 fn expand(rows: &[Vec<(usize, Tile)>], all: &Map) -> Vec<Vec<(usize, Tile)>> {
     let mut old = rows.to_vec();
     loop {
@@ -205,7 +214,7 @@ fn merge_row(row: &[(usize, Tile)]) -> Vec<Vec<bool>> {
         .collect()
 }
 
-fn stich(solved: &[Vec<(usize, Tile)>]) -> Tile {
+fn merge(solved: &[Vec<(usize, Tile)>]) -> Tile {
     solved.iter().flat_map(|row| merge_row(row)).collect()
 }
 
@@ -288,7 +297,7 @@ fn main() {
     );
     assert_eq!(t, &horizontal_flip(&horizontal_flip(t)));
     assert_eq!(t, &vertical_flip(&vertical_flip(t)));
-    assert_eq!(4, rotations(t).len());
+    assert_eq!(4, all_possible_rotations(t).len());
 
     assert!(match_on(t, &vertical_flip(t), Side::Up));
     assert!(match_on(t, &vertical_flip(t), Side::Down));
@@ -312,7 +321,7 @@ fn main() {
     dbg!(a * b * c * d);
 
     // part 2
-    let stiched = stich(&solved);
+    let stiched = merge(&solved);
     let all_on: usize = stiched
         .iter()
         .map(|row| row.iter().filter(|b| **b).count())
