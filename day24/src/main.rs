@@ -1,4 +1,5 @@
-use std::collections::{HashMap, HashSet};
+use itertools::{iterate, Itertools};
+use std::collections::HashSet;
 use std::io::BufRead;
 
 #[derive(Debug, Clone, Copy)]
@@ -13,42 +14,41 @@ enum Dir {
 use Dir::*;
 
 // double-width variant from https://www.redblobgames.com/grids/hexagons/#coordinates
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 struct Pos {
     col: isize,
     row: isize,
 }
 
 impl Pos {
-    fn all_neighbours(self) -> Vec<Self> {
+    fn all_neighbours(self) -> impl Iterator<Item = Pos> {
         [E, W, SE, SW, NE, NW]
             .iter()
-            .map(|d| self.neighbour(*d))
-            .collect()
+            .map(move |d| self.neighbour(*d))
     }
     fn neighbour(self, dir: Dir) -> Self {
         match dir {
-            Dir::W => Pos {
+            W => Pos {
                 col: self.col - 2,
                 row: self.row,
             },
-            Dir::E => Pos {
+            E => Pos {
                 col: self.col + 2,
                 row: self.row,
             },
-            Dir::SE => Pos {
+            SE => Pos {
                 col: self.col + 1,
                 row: self.row + 1,
             },
-            Dir::NW => Pos {
+            NW => Pos {
                 col: self.col - 1,
                 row: self.row - 1,
             },
-            Dir::SW => Pos {
+            SW => Pos {
                 col: self.col - 1,
                 row: self.row + 1,
             },
-            Dir::NE => Pos {
+            NE => Pos {
                 col: self.col + 1,
                 row: self.row - 1,
             },
@@ -64,22 +64,22 @@ fn parse(mut s: &str) -> Vec<Dir> {
     let mut ret = vec![];
     while !s.is_empty() {
         if s.starts_with("e") {
-            ret.push(Dir::E);
+            ret.push(E);
             s = &s[1..];
         } else if s.starts_with("se") {
-            ret.push(Dir::SE);
+            ret.push(SE);
             s = &s[2..];
         } else if s.starts_with("sw") {
-            ret.push(Dir::SW);
+            ret.push(SW);
             s = &s[2..];
         } else if s.starts_with("w") {
-            ret.push(Dir::W);
+            ret.push(W);
             s = &s[1..];
         } else if s.starts_with("nw") {
-            ret.push(Dir::NW);
+            ret.push(NW);
             s = &s[2..];
         } else if s.starts_with("ne") {
-            ret.push(Dir::NE);
+            ret.push(NE);
             s = &s[2..];
         }
     }
@@ -87,48 +87,41 @@ fn parse(mut s: &str) -> Vec<Dir> {
 }
 
 fn should_be_black(p: Pos, prev: &HashSet<Pos>) -> bool {
-    let neighbours = p.all_neighbours();
-    let black_neighbours = neighbours.iter().filter(|p| prev.contains(p)).count();
-    let is_black = prev.contains(&p);
-    (is_black && (black_neighbours == 1 || black_neighbours == 2)) || black_neighbours == 2
+    let black_neighbours = p.all_neighbours().filter(|p| prev.contains(p)).count();
+    black_neighbours == 2 || (black_neighbours == 1 && prev.contains(&p))
 }
 
 fn round(black: &HashSet<Pos>) -> HashSet<Pos> {
-    let mut to_consider = black.clone();
-    to_consider.extend(black.iter().flat_map(|p| p.all_neighbours()));
-    to_consider
-        .into_iter()
+    black
+        .iter()
+        .cloned()
+        .chain(black.iter().flat_map(|p| p.all_neighbours()))
         .filter(|p| should_be_black(*p, black))
         .collect()
 }
 
 fn main() {
-    let input: Vec<_> = std::io::stdin()
+    let h: HashSet<_> = std::io::stdin()
         .lock()
         .lines()
-        .map(|l| parse(&l.unwrap()))
+        .map(|l| Pos { col: 0, row: 0 }.move_by(&parse(&l.unwrap())))
+        .sorted()
+        .group_by(|p| *p)
+        .into_iter()
+        .map(|(k, v)| (k, v.into_iter().count()))
+        .filter(|(_, v)| *v % 2 == 1)
+        .map(|(p, _)| p)
         .collect();
+    dbg!(h.len());
+    dbg!(iterate(h, round).nth(100).map(|h| h.len()));
+}
 
+#[test]
+fn move_by() {
     for col in -10..10 {
         for row in -10..10 {
             let s = Pos { col, row };
             assert_eq!(s, s.move_by(&parse("nwwswee")));
         }
     }
-    let start = Pos { col: 0, row: 0 };
-    let mut v: Vec<_> = input.iter().map(|d| start.move_by(&d)).collect();
-    let mut h = HashMap::new();
-    for (i, d) in v.iter().enumerate() {
-        *h.entry(d).or_insert(0) += 1;
-    }
-    let mut h: HashSet<Pos> = h
-        .iter()
-        .filter(|(_, v)| **v % 2 == 1)
-        .map(|(p, _)| **p)
-        .collect();
-    dbg!(h.len());
-    for r in 1..=100 {
-        h = round(&h);
-    }
-    println!("{}", h.len());
 }
