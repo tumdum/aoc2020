@@ -58,7 +58,7 @@ fn all_valid(m: &HashMap<String, String>) -> bool {
 }
 
 fn main() {
-    let input = merge(
+    let mut input = merge(
         std::io::stdin()
             .lock()
             .lines()
@@ -66,8 +66,16 @@ fn main() {
             .collect::<Vec<_>>(),
     );
     dbg!(input.iter().filter(has_needed).count());
+    let mut tmp : Vec<_> = input
+        .iter()
+        .filter(|v| has_needed(v) && all_valid(v)).collect();
     dbg!(input
         .iter()
         .filter(|v| has_needed(v) && all_valid(v))
         .count());
+    tmp.sort_by_key(|v| v["byr"].clone());
+    for t in tmp.iter().enumerate() {
+        println!("{:?}", t);
+    }
+
 }

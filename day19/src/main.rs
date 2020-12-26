@@ -40,6 +40,12 @@ fn matching_tails_seq<'a, 'b>(
 }
 
 fn matching_tails<'a, 'b>(r: &'a Rule, input: &'b str, all: &HashMap<usize, Rule>) -> Vec<&'b str> {
+    println!("{:?}", r);
+    let ret = matching_tails2(r, input, all);
+    println!("  {:?} vs '{}' -> {:?}", r, input, ret);
+    ret
+}
+fn matching_tails2<'a, 'b>(r: &'a Rule, input: &'b str, all: &HashMap<usize, Rule>) -> Vec<&'b str> {
     match r {
         Rule::Lit(s) if input.starts_with(s) => vec![&input[s.len()..]],
         Rule::Lit(_) => vec![],
@@ -53,9 +59,11 @@ fn matching_tails<'a, 'b>(r: &'a Rule, input: &'b str, all: &HashMap<usize, Rule
 }
 
 fn matches(s: &str, all: &HashMap<usize, Rule>) -> bool {
-    matching_tails(&all[&0], s, all)
+    let r = matching_tails(&all[&0], s, all)
         .into_iter()
-        .any(str::is_empty)
+        .any(str::is_empty);
+    println!("{} -> {}", s, r);
+    r
 }
 
 fn main() {
@@ -70,11 +78,14 @@ fn main() {
     let mut rules: HashMap<_, _> = input[0].iter().map(|s| parse(s)).collect();
     let input = input[1].clone();
 
-    dbg!(input.iter().filter(|s| matches(s, &rules)).count());
+    // dbg!(input.iter().filter(|s| matches(s, &rules)).count());
+    matches("bbaaaaaababbaaabaabaabbb", &rules);
 
+    /*
     rules.insert(8, Rule::Alt(vec![42], vec![42, 8]));
     rules.insert(11, Rule::Alt(vec![42, 31], vec![42, 11, 31]));
     dbg!(input.iter().filter(|s| matches(s, &rules)).count());
+    */
 }
 
 #[test]
